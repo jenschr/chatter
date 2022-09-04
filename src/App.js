@@ -153,7 +153,7 @@ function App() {
           <a href="#" onClick={() => saySomething('Ja')} className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Ja</a>
           <a href="#" onClick={() => saySomething('Nei')} className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Nei</a>
           <a href="#" onClick={() => saySomething('Kanskje')} className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Kanskje</a>
-          <a href="#" onClick={() => saySomething('Dust')} className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Dust</a>
+          <a href="#" onClick={() => saySomething('Vent litt mens jeg skriver noe')} className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Dust</a>
         </div>
 
         {/* Navbar on small screens */}
@@ -161,7 +161,7 @@ function App() {
           <a href="#" onClick={() => saySomething('Ja')} className="w3-bar-item w3-button w3-padding-large">Ja</a>
           <a href="#" onClick={() => saySomething('Nei')} className="w3-bar-item w3-button w3-padding-large">Nei</a>
           <a href="#" onClick={() => saySomething('Kanskje')} className="w3-bar-item w3-button w3-padding-large">Kanskje</a>
-          <a href="#" onClick={() => saySomething('Dust')} className="w3-bar-item w3-button w3-padding-large">Dust</a>
+          <a href="#" onClick={() => saySomething('Vent litt mens jeg skriver noe')} className="w3-bar-item w3-button w3-padding-large">Dust</a>
         </div>
       </div>
 
