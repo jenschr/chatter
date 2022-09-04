@@ -83,8 +83,9 @@ function App() {
     setIsActive(current => !current);
   };
 
-  const changeVoice = (data) => {
-    console.log(data);
+  const doFocus = (event) => {
+    setTextToSay("");
+    console.log("OnFocus");
   }
 
   const handleSpeak = event => {
@@ -167,7 +168,7 @@ function App() {
 
       {/* Header */}
       <header className="w3-container w3-red w3-center" style={{padding:"128px 16px"}}>
-        <p><input value={textToSay} style={{alignSelf:"stretch",width:"100%"}} onInput={e => setTextToSay(e.target.value)} /></p>
+        <p><input value={textToSay} onFocus={doFocus} style={{alignSelf:"stretch",width:"100%"}} onInput={e => setTextToSay(e.target.value)} /></p>
         <button onClick={handleSpeak} className="w3-button w3-black w3-padding-large w3-large w3-margin-top">Speak!</button>
         <div><ReactAudioPlayer
           src={activeAudioFile}
