@@ -158,10 +158,10 @@ function App() {
 
         {/* Navbar on small screens */}
         <div id="navDemo" className={ isActive ? 'w3-bar-block w3-white w3-hide w3-hide-large w3-hide-medium w3-large w3-show' : 'w3-bar-block w3-white w3-hide w3-hide-large w3-hide-medium w3-large' }>
-          <a href="#" className="w3-bar-item w3-button w3-padding-large">Ja</a>
-          <a href="#" className="w3-bar-item w3-button w3-padding-large">Nei</a>
-          <a href="#" className="w3-bar-item w3-button w3-padding-large">Kanskje</a>
-          <a href="#" className="w3-bar-item w3-button w3-padding-large">Dust</a>
+          <a href="#" onClick={() => saySomething('Ja')} className="w3-bar-item w3-button w3-padding-large">Ja</a>
+          <a href="#" onClick={() => saySomething('Nei')} className="w3-bar-item w3-button w3-padding-large">Nei</a>
+          <a href="#" onClick={() => saySomething('Kanskje')} className="w3-bar-item w3-button w3-padding-large">Kanskje</a>
+          <a href="#" onClick={() => saySomething('Dust')} className="w3-bar-item w3-button w3-padding-large">Dust</a>
         </div>
       </div>
 
