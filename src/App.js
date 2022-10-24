@@ -183,7 +183,7 @@ function App() {
                       <h1>Første test</h1>
             <h5 className="w3-padding-32">Fant en grei template som virker med både mobil og PC. Ganske greit å få dette opp og gå også.</h5>
 
-            <p className="w3-text-grey">Bruker dette som en måte å friske opp React, så jeg bruker litt tid på å gjøre ting på "riktig" måte.</p>
+            <p className="w3-text-grey">Bruker dette som en måte å friske opp React, så jeg bruker litt tid på å gjøre det på "riktig" måte.</p>
         </div>
       </div>
 
