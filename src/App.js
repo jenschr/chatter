@@ -288,9 +288,6 @@ function App() {
             onEnded={audioFinished}
           />
         </div>
-        <p>
-          {currentSpeechState}:{activeTranscriptionId}
-        </p>
       </header>
 
       {/* First Grid */}
