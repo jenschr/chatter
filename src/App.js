@@ -1,42 +1,71 @@
-import "./App.css";
-import "./useInterval";
-import { UID, KEY } from "./secret";
+import React, { useState } from "react";
 import ReactAudioPlayer from "react-audio-player";
-import { useState, useEffect, useRef } from "react";
+
+import "./App.css";
+import useInterval from "./useInterval.js";
+import { UID, KEY } from "./secret.js";
+//import StatusButton from "./statusButton.jsx";
+
+const phraseList = [
+  {text: "Ja"},
+  {text: "Nei"},
+  {text: "Kanskje"},
+  {text: "Det driter jeg i", short: "Driter i..."},
+  {text: "Vent litt mens jeg skriver noe", short: "Vent litt..."}
+];
+
+const placeholderPhrase = "Bytt denne teksten med noe nyttig";
+
+const speechState = {
+  idle: "idle",
+  converting: "converting",
+  retrieving: "retrieving",
+  playing: "playing",
+  waitAndThenPlay: "waitAndThenPlay",
+};
+
+const axios = require("axios").default;
+
+const baseUrl = "https://play.ht/api/v1";
+const convertUrl = baseUrl + "/convert";
+const resultUrl = baseUrl + "/articleStatus?transcriptionId=";
+
+
 
 function App() {
-  const speechState = {
-    idle: "idle",
-    converting: "converting",
-    retrieving: "retrieving",
-    playing: "playing",
-    waitAndThenPlay: "waitAndThenPlay",
-  };
 
-  const axios = require("axios").default;
-  const [textToSay, setTextToSay] = useState(
-    "Bytt denne teksten med noe nyttig"
-  );
+  const [textToSay, setTextToSay] = useState(placeholderPhrase);
   const [activeAudioFile, setActiveAudioFile] = useState("");
   const [isActive, setIsActive] = useState(false);
-  const [currentSpeechState, setCurrentSpeechState] = useState(
-    speechState.idle
-  );
+  const [currentSpeechState, setCurrentSpeechState] = useState(speechState.idle);
   const [activeTranscriptionId, setActiveTranscriptionId] = useState(0);
-  const baseUrl = "https://play.ht/api/v1";
-  const convertUrl = baseUrl + "/convert";
-  const resultUrl = baseUrl + "/articleStatus?transcriptionId=";
-  var speechRequest = {
+
+  const speechRequest = {
     voice: "nb-NO-FinnNeural",
     content: "",
     title: "jensatester", // Optional
     trimSilence: false, // Optional
   };
 
-  var timer;
+
+  function currentStatus() {
+    let buttonText = "none";
+    if (currentSpeechState === speechState.retrieving) {
+      buttonText = "Retreiving!";
+    } else if (currentSpeechState === speechState.converting) {
+      buttonText = "Converting!";
+    } else if (currentSpeechState === speechState.playing) {
+      buttonText = "Playing!";
+    } else if (currentSpeechState === speechState.waitAndThenPlay) {
+      buttonText = "WaitAndPlay!";
+    } else {
+      buttonText = "Speak!";
+    }
+    return <p>{buttonText}</p>;
+  }
 
   useInterval(() => {
-    if (currentSpeechState == speechState.retrieving) {
+    if (currentSpeechState === speechState.retrieving) {
       axios
         .get(resultUrl + activeTranscriptionId, {
           headers: {
@@ -62,30 +91,13 @@ function App() {
           console.log("axios error: " + error);
           setCurrentSpeechState(speechState.idle);
         });
-    } else if (currentSpeechState == speechState.waitAndThenPlay) {
+    } else if (currentSpeechState === speechState.waitAndThenPlay) {
       setCurrentSpeechState(speechState.idle);
       handleSpeak();
     }
   }, 1000);
 
-  useEffect(() => {
-    //();
-  });
-  function currentStatus() {
-    let buttonText = "none";
-    if (currentSpeechState == speechState.retrieving) {
-      buttonText = "Retreiving!";
-    } else if (currentSpeechState == speechState.converting) {
-      buttonText = "Converting!";
-    } else if (currentSpeechState == speechState.playing) {
-      buttonText = "Playing!";
-    } else if (currentSpeechState == speechState.waitAndThenPlay) {
-      buttonText = "WaitAndPlay!";
-    } else {
-      buttonText = "Speak!";
-    }
-    return <p>{buttonText}</p>;
-  }
+
   function saySomething(whatToSay) {
     setTextToSay(whatToSay);
     setCurrentSpeechState(speechState.waitAndThenPlay);
@@ -107,6 +119,7 @@ function App() {
     }
     return false;
   };
+
   const audioFinished = (e) => {
     console.log("Finished " + JSON.stringify(e));
     setCurrentSpeechState(speechState.idle);
@@ -129,7 +142,7 @@ function App() {
         // {"status":"transcriping","transcriptionId":"-NB7NC5kkMThnqOaE7Re","contentLength":3,"wordCount":3}
         if (response && response.data && response.data.status) {
           if (
-            response.data.status == "transcriping" &&
+            response.data.status === "transcriping" &&
             response.data.transcriptionId
           ) {
             // success
@@ -150,72 +163,32 @@ function App() {
       });
   };
 
-  function useInterval(callback, delay) {
-    const savedCallback = useRef();
-
-    // Remember the latest function.
-    useEffect(() => {
-      savedCallback.current = callback;
-    }, [callback]);
-
-    // Set up the interval.
-    useEffect(() => {
-      function tick() {
-        savedCallback.current();
-      }
-      if (delay !== null) {
-        let id = setInterval(tick, delay);
-        return () => clearInterval(id);
-      }
-    }, [delay]);
-  }
-
   return (
     <div className="App">
       {/* Navbar */}
       <div className="w3-top">
         <div className="w3-bar w3-red w3-card w3-left-align w3-large">
-          <a
+          <button
             className="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large w3-red"
             onClick={handleMenuClick}
             title="Toggle Navigation Menu"
           >
             <i className="fa fa-bars"></i>
-          </a>
+          </button>
           <a
-            href="#"
             className="w3-bar-item w3-button w3-padding-large w3-white"
+            href="/"
           >
             Home
           </a>
-          <a
-            href="#"
-            onClick={() => saySomething("Ja")}
+          {phraseList.map(phrase => (
+            <button
             className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
+            onClick={() => saySomething(`${phrase.text}`)}
           >
-            Ja
-          </a>
-          <a
-            href="#"
-            onClick={() => saySomething("Nei")}
-            className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
-          >
-            Nei
-          </a>
-          <a
-            href="#"
-            onClick={() => saySomething("Kanskje")}
-            className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
-          >
-            Kanskje
-          </a>
-          <a
-            href="#"
-            onClick={() => saySomething("Vent litt mens jeg skriver noe")}
-            className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
-          >
-            Vent litt...
-          </a>
+            {phrase.short ? phrase.short : phrase.text}
+          </button>
+          ))}
         </div>
 
         {/* Navbar on small screens */}
@@ -227,34 +200,15 @@ function App() {
               : "w3-bar-block w3-white w3-hide w3-hide-large w3-hide-medium w3-large"
           }
         >
-          <a
-            href="#"
-            onClick={() => saySomething("Ja")}
-            className="w3-bar-item w3-button w3-padding-large"
-          >
-            Ja
-          </a>
-          <a
-            href="#"
-            onClick={() => saySomething("Nei")}
-            className="w3-bar-item w3-button w3-padding-large"
-          >
-            Nei
-          </a>
-          <a
-            href="#"
-            onClick={() => saySomething("Kanskje")}
-            className="w3-bar-item w3-button w3-padding-large"
-          >
-            Kanskje
-          </a>
-          <a
-            href="#"
-            onClick={() => saySomething("Vent litt mens jeg skriver noe")}
-            className="w3-bar-item w3-button w3-padding-large"
-          >
-            Vent litt...
-          </a>
+          {phraseList.map(phrase => (
+            <button
+              className="w3-bar-item w3-button w3-padding-large"
+              onClick={() => saySomething(`${phrase.text}`)}
+            >
+              {phrase.short ? phrase.short : phrase.text}
+            </button>
+          ))}
+
         </div>
       </div>
 
@@ -265,16 +219,16 @@ function App() {
       >
         <p>
           <textarea
-            style={{ height: 150 }}
-            rows={4}
             autoComplete
-            value={textToSay}
             onFocus={doFocus}
-            onKeyDown={handleKeyDown}
-            style={{ alignSelf: "stretch", width: "100%" }}
             onInput={(e) => setTextToSay(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={4}
+            style={{ alignSelf: "stretch", height: "150px", width: "100%" }}
+            value={textToSay}
           />
         </p>
+        {/*<StatusButton clickHandler={handleSpeak} status={currentSpeechState} />*/}
         <button
           onClick={handleSpeak}
           className="w3-button w3-black w3-padding-large w3-large w3-margin-top"
