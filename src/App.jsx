@@ -39,7 +39,7 @@ const resultUrl = baseUrl + "/articleStatus?transcriptionId=";
 
 
 const initialState = {
-  phrases: [],
+  phrases: {},
   textToSay: placeholderPhrase,
   currentSpeechState: speechState.idle,
   activeAudioFile: "",
@@ -111,7 +111,7 @@ function App() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
       console.log("do validate");
       saySomething(textToSay);
     }
