@@ -1,5 +1,6 @@
 import React, { useState, useReducer } from "react";
 import ReactAudioPlayer from "react-audio-player";
+import sum from "hash-sum";
 
 import "./App.css";
 import useInterval from "./useInterval.js";
@@ -9,14 +10,23 @@ import VersionHistory from "./version-history.jsx";
 import QuoteOfTheDay from "./quote-of-the-day.jsx";
 import Footer from "./footer.jsx";
 import speechState from "./speech-state.js";
+import reducer from "./reducer.js";
+import * as ACTION from "./actions.js";
 
+
+const VOICE = {
+  "NL": "nl-NL-MaartenNeural",
+  "NO": "nb-NO-FinnNeural",
+  "EN": "en-GB-RyanNeural"
+};
 
 const phraseList = [
   {text: "Ja"},
   {text: "Nei"},
   {text: "Kanskje"},
   {text: "Det driter jeg i", short: "Driter i..."},
-  {text: "Vent litt mens jeg skriver noe", short: "Vent litt..."}
+  {text: "Vent litt mens jeg skriver noe", short: "Vent litt..."},
+  {text: "En van je hoempa, hoempa, hoempa dada da-a-a!", short: "♬", lang: "NL"}
 ];
 
 const placeholderPhrase = "Bytt denne teksten med noe nyttig";
@@ -27,17 +37,9 @@ const baseUrl = "https://play.ht/api/v1";
 const convertUrl = baseUrl + "/convert";
 const resultUrl = baseUrl + "/articleStatus?transcriptionId=";
 
-const ACTION = {
-  SET_CURRENT_SPEECH_STATE: Symbol("SET_CURRENT_SPEECH_STATE"),
-  SET_ACTIVE_AUDIO_FILE: Symbol("SET_ACTIVE_AUDIO_FILE"),
-  AXIOS_ERROR: Symbol("AXIOS_ERROR"),
-  AUDIO_FINISHED: Symbol("AUDIO_FINISHED"),
-  SAY: Symbol("SAY"),
-  SET_TEXT_TO_SAY: Symbol("SET_TEXT_TO_SAY"),
-  SET_ACTIVE_TRANSCRIPTION_ID: Symbol("SET_ACTIVE_TRANSCRIPTION_ID")
-};
 
 const initialState = {
+  phrases: [],
   textToSay: placeholderPhrase,
   currentSpeechState: speechState.idle,
   activeAudioFile: "",
@@ -45,70 +47,7 @@ const initialState = {
   errors: []
 };
 
-const reducer = (state = initialState, action = {}) => {
-  const {type, payload} = action;
 
-  switch (type) {
-    case ACTION.SAY:
-      return {
-        ...state,
-        textToSay: payload,
-        currentSpeechState: speechState.waitAndThenPlay
-      };
-
-    case ACTION.SET_TEXT_TO_SAY:
-      return {
-        ...state,
-        textToSay: payload
-      };
-
-    case ACTION.SET_CURRENT_SPEECH_STATE:
-      if (state.currentSpeechState === payload) {
-        break;
-      }
-      return {
-        ...state,
-        currentSpeechState: payload
-      };
-
-    case ACTION.SET_ACTIVE_AUDIO_FILE:
-      return {
-        ...state,
-        activeAudioFile: payload
-      };
-
-    case ACTION.AUDIO_FINISHED:
-      return {
-        ...state,
-        textToSay: "",
-        currentSpeechState: speechState.idle
-      };
-
-    case ACTION.SET_ACTIVE_TRANSCRIPTION_ID:
-      return {
-        ...state,
-        activeTranscriptionId: payload,
-        currentSpeechState: speechState.retrieving
-      };
-
-    case ACTION.AXIOS_ERROR:
-      console.log(`axios error: ${payload}`);
-
-      return {
-        ...state,
-        currentSpeechState: speechState.idle,
-        errors: [
-          payload,
-          ...state.errors
-        ]
-      };
-
-    default:
-      return state;
-  }
-
-  return state;
-};
 
 
 function App() {
@@ -123,8 +62,6 @@ function App() {
     title: "jensatester", // Optional
     trimSilence: false    // Optional
   };
-
-
 
 
   useInterval(() => {
@@ -161,7 +98,7 @@ function App() {
 
 
   function saySomething(whatToSay) {
-    dispatch({type: ACTION.SAY, payload: whatToSay})
+    dispatch({type: ACTION.SAY, payload: whatToSay});
   }
 
   const handleMenuClick = (event) => {
