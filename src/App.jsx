@@ -1,10 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useReducer } from "react";
 import ReactAudioPlayer from "react-audio-player";
 
 import "./App.css";
 import useInterval from "./useInterval.js";
 import { UID, KEY } from "./secret.js";
-//import StatusButton from "./statusButton.jsx";
+import StatusButton from "./statusButton.jsx";
+import VersionHistory from "./version-history.jsx";
+import QuoteOfTheDay from "./quote-of-the-day.jsx";
+import Footer from "./footer.jsx";
+import speechState from "./speech-state.js";
+
 
 const phraseList = [
   {text: "Ja"},
@@ -16,53 +21,111 @@ const phraseList = [
 
 const placeholderPhrase = "Bytt denne teksten med noe nyttig";
 
-const speechState = {
-  idle: "idle",
-  converting: "converting",
-  retrieving: "retrieving",
-  playing: "playing",
-  waitAndThenPlay: "waitAndThenPlay",
-};
-
 const axios = require("axios").default;
 
 const baseUrl = "https://play.ht/api/v1";
 const convertUrl = baseUrl + "/convert";
 const resultUrl = baseUrl + "/articleStatus?transcriptionId=";
 
+const ACTION = {
+  SET_CURRENT_SPEECH_STATE: Symbol("SET_CURRENT_SPEECH_STATE"),
+  SET_ACTIVE_AUDIO_FILE: Symbol("SET_ACTIVE_AUDIO_FILE"),
+  AXIOS_ERROR: Symbol("AXIOS_ERROR"),
+  AUDIO_FINISHED: Symbol("AUDIO_FINISHED"),
+  SAY: Symbol("SAY"),
+  SET_TEXT_TO_SAY: Symbol("SET_TEXT_TO_SAY"),
+  SET_ACTIVE_TRANSCRIPTION_ID: Symbol("SET_ACTIVE_TRANSCRIPTION_ID")
+};
+
+const initialState = {
+  textToSay: placeholderPhrase,
+  currentSpeechState: speechState.idle,
+  activeAudioFile: "",
+  activeTranscriptionId: 0,
+  errors: []
+};
+
+const reducer = (state = initialState, action = {}) => {
+  const {type, payload} = action;
+
+  switch (type) {
+    case ACTION.SAY:
+      return {
+        ...state,
+        textToSay: payload,
+        currentSpeechState: speechState.waitAndThenPlay
+      };
+
+    case ACTION.SET_TEXT_TO_SAY:
+      return {
+        ...state,
+        textToSay: payload
+      };
+
+    case ACTION.SET_CURRENT_SPEECH_STATE:
+      if (state.currentSpeechState === payload) {
+        break;
+      }
+      return {
+        ...state,
+        currentSpeechState: payload
+      };
+
+    case ACTION.SET_ACTIVE_AUDIO_FILE:
+      return {
+        ...state,
+        activeAudioFile: payload
+      };
+
+    case ACTION.AUDIO_FINISHED:
+      return {
+        ...state,
+        textToSay: "",
+        currentSpeechState: speechState.idle
+      };
+
+    case ACTION.SET_ACTIVE_TRANSCRIPTION_ID:
+      return {
+        ...state,
+        activeTranscriptionId: payload,
+        currentSpeechState: speechState.retrieving
+      };
+
+    case ACTION.AXIOS_ERROR:
+      console.log(`axios error: ${payload}`);
+
+      return {
+        ...state,
+        currentSpeechState: speechState.idle,
+        errors: [
+          payload,
+          ...state.errors
+        ]
+      };
+
+    default:
+      return state;
+  }
+
+  return state;
+};
 
 
 function App() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const {textToSay, activeAudioFile, activeTranscriptionId, currentSpeechState} = state;
 
-  const [textToSay, setTextToSay] = useState(placeholderPhrase);
-  const [activeAudioFile, setActiveAudioFile] = useState("");
   const [isActive, setIsActive] = useState(false);
-  const [currentSpeechState, setCurrentSpeechState] = useState(speechState.idle);
-  const [activeTranscriptionId, setActiveTranscriptionId] = useState(0);
 
   const speechRequest = {
     voice: "nb-NO-FinnNeural",
     content: "",
     title: "jensatester", // Optional
-    trimSilence: false, // Optional
+    trimSilence: false    // Optional
   };
 
 
-  function currentStatus() {
-    let buttonText = "none";
-    if (currentSpeechState === speechState.retrieving) {
-      buttonText = "Retreiving!";
-    } else if (currentSpeechState === speechState.converting) {
-      buttonText = "Converting!";
-    } else if (currentSpeechState === speechState.playing) {
-      buttonText = "Playing!";
-    } else if (currentSpeechState === speechState.waitAndThenPlay) {
-      buttonText = "WaitAndPlay!";
-    } else {
-      buttonText = "Speak!";
-    }
-    return <p>{buttonText}</p>;
-  }
+
 
   useInterval(() => {
     if (currentSpeechState === speechState.retrieving) {
@@ -77,30 +140,28 @@ function App() {
           console.log("axios response: " + response);
           // {"status":"transcriping","transcriptionId":"-NB7NC5kkMThnqOaE7Re","contentLength":3,"wordCount":3}
           if (response && response.data.converted) {
+            dispatch({type: ACTION.SET_ACTIVE_AUDIO_FILE, payload: response.data.audioUrl});
+            dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.playing});
             console.log("Play.ht gave us " + response.data.audioUrl);
-            setActiveAudioFile(response.data.audioUrl);
-            setCurrentSpeechState(speechState.playing);
+
           } else if (response && response.data.error) {
-            console.log("Play.ht error " + response.data.errorMessage);
-            setCurrentSpeechState(speechState.idle);
+            dispatch({type: ACTION.AXIOS_ERROR, payload: response.data.errorMessage});
           } else {
             // Just hang here...
           }
         })
         .catch(function (error) {
-          console.log("axios error: " + error);
-          setCurrentSpeechState(speechState.idle);
+          dispatch({type: ACTION.AXIOS_ERROR, payload: error});
         });
     } else if (currentSpeechState === speechState.waitAndThenPlay) {
-      setCurrentSpeechState(speechState.idle);
+      dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.playing});
       handleSpeak();
     }
   }, 1000);
 
 
   function saySomething(whatToSay) {
-    setTextToSay(whatToSay);
-    setCurrentSpeechState(speechState.waitAndThenPlay);
+    dispatch({type: ACTION.SAY, payload: whatToSay})
   }
 
   const handleMenuClick = (event) => {
@@ -108,7 +169,7 @@ function App() {
   };
 
   const doFocus = (event) => {
-    setTextToSay("");
+    dispatch({type: ACTION.SET_TEXT_TO_SAY, payload: ""});
     console.log("OnFocus");
   };
 
@@ -121,15 +182,15 @@ function App() {
   };
 
   const audioFinished = (e) => {
-    console.log("Finished " + JSON.stringify(e));
-    setCurrentSpeechState(speechState.idle);
-    setTextToSay("");
+    console.log(`Finished ${JSON.stringify(e)}`);
+    dispatch({type: ACTION.AUDIO_FINISHED});
   };
 
   const handleSpeak = (event) => {
     console.log(speechRequest);
     speechRequest.content = [textToSay];
-    setCurrentSpeechState(speechState.converting);
+    dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.converting});
+
     axios
       .post(convertUrl, speechRequest, {
         headers: {
@@ -138,7 +199,7 @@ function App() {
         },
       })
       .then(function (response) {
-        console.log("axios response: " + response);
+        console.log(`axios response: ${response}`);
         // {"status":"transcriping","transcriptionId":"-NB7NC5kkMThnqOaE7Re","contentLength":3,"wordCount":3}
         if (response && response.data && response.data.status) {
           if (
@@ -146,21 +207,27 @@ function App() {
             response.data.transcriptionId
           ) {
             // success
-            setActiveTranscriptionId(response.data.transcriptionId);
-            setCurrentSpeechState(speechState.retrieving);
+            dispatch({type: ACTION.SET_ACTIVE_TRANSCRIPTION_ID, payload: response.data.transcriptionId});
           } // fail
           else {
-            console.log("Play.ht responded with " + response.data.status + "?");
-            setCurrentSpeechState(speechState.idle);
+            console.log(`Play.ht responded with ${response.data.status}?`);
+            dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.idle});
           }
         } else {
-          setCurrentSpeechState(speechState.idle);
+          dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.idle});
         }
       })
       .catch(function (error) {
-        console.log("axios error: " + error);
-        setCurrentSpeechState(speechState.idle);
+        dispatch({type: ACTION.AXIOS_ERROR, payload: error});
       });
+  };
+
+  const handleTextInput = (event) => {
+    dispatch({type: ACTION.SET_TEXT_TO_SAY, payload: event.target.value});
+  };
+
+  const handlePhraseButton = (event) => {
+    dispatch({type: ACTION.SAY, payload: event.target.value});
   };
 
   return (
@@ -181,10 +248,13 @@ function App() {
           >
             Home
           </a>
-          {phraseList.map(phrase => (
+          {phraseList.map((phrase, index) => (
             <button
             className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
-            onClick={() => saySomething(`${phrase.text}`)}
+            key={phrase + index}
+            value={phrase.text}
+            onClick={handlePhraseButton}
+            title={phrase.text}
           >
             {phrase.short ? phrase.short : phrase.text}
           </button>
@@ -200,10 +270,13 @@ function App() {
               : "w3-bar-block w3-white w3-hide w3-hide-large w3-hide-medium w3-large"
           }
         >
-          {phraseList.map(phrase => (
+          {phraseList.map((phrase, index) => (
             <button
               className="w3-bar-item w3-button w3-padding-large"
-              onClick={() => saySomething(`${phrase.text}`)}
+              key={phrase.text + index}
+              value={phrase.text}
+              onClick={handlePhraseButton}
+              title={phrase.text}
             >
               {phrase.short ? phrase.short : phrase.text}
             </button>
@@ -214,27 +287,20 @@ function App() {
 
       {/* Header */}
       <header
-        className="w3-container w3-red w3-center"
-        style={{ padding: "128px 16px" }}
+        className="w3-container w3-red w3-center main-header"
       >
         <p>
           <textarea
-            autoComplete
+            autoComplete="true"
+            className="text-to-say"
             onFocus={doFocus}
-            onInput={(e) => setTextToSay(e.target.value)}
+            onInput={handleTextInput}
             onKeyDown={handleKeyDown}
             rows={4}
-            style={{ alignSelf: "stretch", height: "150px", width: "100%" }}
             value={textToSay}
           />
         </p>
-        {/*<StatusButton clickHandler={handleSpeak} status={currentSpeechState} />*/}
-        <button
-          onClick={handleSpeak}
-          className="w3-button w3-black w3-padding-large w3-large w3-margin-top"
-        >
-          {currentStatus()}
-        </button>
+        <StatusButton clickHandler={handleSpeak} status={currentSpeechState} />
         <div>
           <ReactAudioPlayer
             src={activeAudioFile}
@@ -245,44 +311,13 @@ function App() {
       </header>
 
       {/* First Grid */}
-      <div className="w3-row-padding w3-padding-64 w3-container">
-        <div className="w3-content">
-          <h1>V1.1 </h1>
-          <h5 className="w3-padding-32">
-            Har lagt til at filen hentes når man trykker Enter + støtte for
-            flere linjer. Må pønske litt på hvordan jeg kan gjøre caching.
-            Thomas foreslo å bruke LocalStorage? Får se om det er enkleste
-            løsning.
-          </h5>
-          <h1 className="w3-text-grey">Første versjon</h1>
-          <h5 className="w3-text-grey">
-            Fant en grei template som virker med både mobil og PC. Ganske greit
-            å få dette opp og gå også.
-          </h5>
+      <VersionHistory />
 
-          <p className="w3-text-grey">
-            Bruker dette som en måte å friske opp React, så jeg bruker litt tid
-            på å gjøre det på "riktig" måte.
-          </p>
-        </div>
-      </div>
-
-      <div className="w3-container w3-black w3-center w3-opacity w3-padding-64">
-        <h1 className="w3-margin w3-xlarge">Quote of the day: live life!</h1>
-      </div>
+      {/* Quote of the day */}
+      <QuoteOfTheDay />
 
       {/* Footer */}
-      <footer className="w3-container w3-padding-64 w3-center w3-opacity">
-        <div className="w3-xlarge w3-padding-32">
-          <i className="fa fa-facebook-official w3-hover-opacity"></i>
-          <i className="fa fa-instagram w3-hover-opacity"></i>
-          <i className="fa fa-snapchat w3-hover-opacity"></i>
-          <i className="fa fa-pinterest-p w3-hover-opacity"></i>
-          <i className="fa fa-twitter w3-hover-opacity"></i>
-          <i className="fa fa-linkedin w3-hover-opacity"></i>
-        </div>
-        <p>Footer shit goes here</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

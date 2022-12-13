@@ -36,3 +36,17 @@
     transform: rotate(360deg);
   }
 }
+
+.text-to-say {
+  alignSelf: stretch;
+  height: 150px;
+  width: 100%;
+}
+
+.main-header {
+  padding: 128px 16px;
+}
+
+.status-button {
+  padding: 2rem 2rem !important;
+}
