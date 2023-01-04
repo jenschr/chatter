@@ -1,2 +1,2 @@
-export const UID = "EQOV2pIRLfSarPHeBDarMNbCBwa2";
-export const KEY = "b08c1bd96c85489ea3a72ef4c969e0b8";
+export const UID = "o00MTOlLadcgsZQ9SU3Ur7JpD283";
+export const KEY = "0b31877b520740f78d56550a96259920";

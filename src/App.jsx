@@ -13,20 +13,23 @@ import speechState from "./speech-state.js";
 import reducer from "./reducer.js";
 import * as ACTION from "./actions.js";
 
-
 const VOICE = {
-  "NL": "nl-NL-MaartenNeural",
-  "NO": "nb-NO-FinnNeural",
-  "EN": "en-GB-RyanNeural"
+  NL: "nl-NL-MaartenNeural",
+  NO: "nb-NO-FinnNeural",
+  EN: "en-GB-RyanNeural",
 };
 
 const phraseList = [
-  {text: "Ja"},
-  {text: "Nei"},
-  {text: "Kanskje"},
-  {text: "Det driter jeg i", short: "Driter i..."},
-  {text: "Vent litt mens jeg skriver noe", short: "Vent litt..."},
-  {text: "En van je hoempa, hoempa, hoempa dada da-a-a!", short: "♬", lang: "NL"}
+  { text: "Ja" },
+  { text: "Nei" },
+  { text: "Kanskje" },
+  { text: "Det driter jeg i", short: "Driter i..." },
+  { text: "Vent litt mens jeg skriver noe", short: "Vent litt..." },
+  {
+    text: "En van je hoempa, hoempa, hoempa dada da-a-a!",
+    short: "♬",
+    lang: "NL",
+  },
 ];
 
 const placeholderPhrase = "Bytt denne teksten med noe nyttig";
@@ -37,22 +40,23 @@ const baseUrl = "https://play.ht/api/v1";
 const convertUrl = baseUrl + "/convert";
 const resultUrl = baseUrl + "/articleStatus?transcriptionId=";
 
-
 const initialState = {
   phrases: {},
   textToSay: placeholderPhrase,
   currentSpeechState: speechState.idle,
   activeAudioFile: "",
   activeTranscriptionId: 0,
-  errors: []
+  errors: [],
 };
-
-
-
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const {textToSay, activeAudioFile, activeTranscriptionId, currentSpeechState} = state;
+  const {
+    textToSay,
+    activeAudioFile,
+    activeTranscriptionId,
+    currentSpeechState,
+  } = state;
 
   const [isActive, setIsActive] = useState(false);
 
@@ -60,9 +64,8 @@ function App() {
     voice: "nb-NO-FinnNeural",
     content: "",
     title: "jensatester", // Optional
-    trimSilence: false    // Optional
+    trimSilence: false, // Optional
   };
-
 
   useInterval(() => {
     if (currentSpeechState === speechState.retrieving) {
@@ -77,28 +80,38 @@ function App() {
           console.log("axios response: " + response);
           // {"status":"transcriping","transcriptionId":"-NB7NC5kkMThnqOaE7Re","contentLength":3,"wordCount":3}
           if (response && response.data.converted) {
-            dispatch({type: ACTION.SET_ACTIVE_AUDIO_FILE, payload: response.data.audioUrl});
-            dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.playing});
+            dispatch({
+              type: ACTION.SET_ACTIVE_AUDIO_FILE,
+              payload: response.data.audioUrl,
+            });
+            dispatch({
+              type: ACTION.SET_CURRENT_SPEECH_STATE,
+              payload: speechState.playing,
+            });
             console.log("Play.ht gave us " + response.data.audioUrl);
-
           } else if (response && response.data.error) {
-            dispatch({type: ACTION.AXIOS_ERROR, payload: response.data.errorMessage});
+            dispatch({
+              type: ACTION.AXIOS_ERROR,
+              payload: response.data.errorMessage,
+            });
           } else {
             // Just hang here...
           }
         })
         .catch(function (error) {
-          dispatch({type: ACTION.AXIOS_ERROR, payload: error});
+          dispatch({ type: ACTION.AXIOS_ERROR, payload: error });
         });
     } else if (currentSpeechState === speechState.waitAndThenPlay) {
-      dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.playing});
+      dispatch({
+        type: ACTION.SET_CURRENT_SPEECH_STATE,
+        payload: speechState.playing,
+      });
       handleSpeak();
     }
   }, 1000);
 
-
   function saySomething(whatToSay) {
-    dispatch({type: ACTION.SAY, payload: whatToSay});
+    dispatch({ type: ACTION.SAY, payload: whatToSay });
   }
 
   const handleMenuClick = (event) => {
@@ -106,7 +119,7 @@ function App() {
   };
 
   const doFocus = (event) => {
-    dispatch({type: ACTION.SET_TEXT_TO_SAY, payload: ""});
+    dispatch({ type: ACTION.SET_TEXT_TO_SAY, payload: "" });
     console.log("OnFocus");
   };
 
@@ -120,13 +133,16 @@ function App() {
 
   const audioFinished = (e) => {
     console.log(`Finished ${JSON.stringify(e)}`);
-    dispatch({type: ACTION.AUDIO_FINISHED});
+    dispatch({ type: ACTION.AUDIO_FINISHED });
   };
 
   const handleSpeak = (event) => {
     console.log(speechRequest);
     speechRequest.content = [textToSay];
-    dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.converting});
+    dispatch({
+      type: ACTION.SET_CURRENT_SPEECH_STATE,
+      payload: speechState.converting,
+    });
 
     axios
       .post(convertUrl, speechRequest, {
@@ -140,31 +156,40 @@ function App() {
         // {"status":"transcriping","transcriptionId":"-NB7NC5kkMThnqOaE7Re","contentLength":3,"wordCount":3}
         if (response && response.data && response.data.status) {
           if (
-            response.data.status === "transcriping" &&
+            response.data.status === "CREATED" &&
             response.data.transcriptionId
           ) {
             // success
-            dispatch({type: ACTION.SET_ACTIVE_TRANSCRIPTION_ID, payload: response.data.transcriptionId});
+            dispatch({
+              type: ACTION.SET_ACTIVE_TRANSCRIPTION_ID,
+              payload: response.data.transcriptionId,
+            });
           } // fail
           else {
             console.log(`Play.ht responded with ${response.data.status}?`);
-            dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.idle});
+            dispatch({
+              type: ACTION.SET_CURRENT_SPEECH_STATE,
+              payload: speechState.idle,
+            });
           }
         } else {
-          dispatch({type: ACTION.SET_CURRENT_SPEECH_STATE, payload: speechState.idle});
+          dispatch({
+            type: ACTION.SET_CURRENT_SPEECH_STATE,
+            payload: speechState.idle,
+          });
         }
       })
       .catch(function (error) {
-        dispatch({type: ACTION.AXIOS_ERROR, payload: error});
+        dispatch({ type: ACTION.AXIOS_ERROR, payload: error });
       });
   };
 
   const handleTextInput = (event) => {
-    dispatch({type: ACTION.SET_TEXT_TO_SAY, payload: event.target.value});
+    dispatch({ type: ACTION.SET_TEXT_TO_SAY, payload: event.target.value });
   };
 
   const handlePhraseButton = (event) => {
-    dispatch({type: ACTION.SAY, payload: event.target.value});
+    dispatch({ type: ACTION.SAY, payload: event.target.value });
   };
 
   return (
@@ -187,14 +212,14 @@ function App() {
           </a>
           {phraseList.map((phrase, index) => (
             <button
-            className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
-            key={phrase + index}
-            value={phrase.text}
-            onClick={handlePhraseButton}
-            title={phrase.text}
-          >
-            {phrase.short ? phrase.short : phrase.text}
-          </button>
+              className="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
+              key={phrase + index}
+              value={phrase.text}
+              onClick={handlePhraseButton}
+              title={phrase.text}
+            >
+              {phrase.short ? phrase.short : phrase.text}
+            </button>
           ))}
         </div>
 
@@ -218,14 +243,11 @@ function App() {
               {phrase.short ? phrase.short : phrase.text}
             </button>
           ))}
-
         </div>
       </div>
 
       {/* Header */}
-      <header
-        className="w3-container w3-red w3-center main-header"
-      >
+      <header className="w3-container w3-red w3-center main-header">
         <p>
           <textarea
             autoComplete="true"
