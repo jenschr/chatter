@@ -4,7 +4,7 @@ function VersionHistory(props) {
   return (
     <div className="w3-row-padding w3-padding-64 w3-container">
       <div className="w3-content">
-        <h1>V1.1.1 </h1>
+        <h1>V1.1 </h1>
         <h5 className="w3-padding-32">
           Har lagt til at filen hentes når man trykker Enter + støtte for flere
           linjer. Må pønske litt på hvordan jeg kan gjøre caching. Thomas

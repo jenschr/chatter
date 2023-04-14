@@ -190,6 +190,7 @@ function App() {
 
   const handlePhraseButton = (event) => {
     dispatch({ type: ACTION.SAY, payload: event.target.value });
+    console.log("Say: " + event.target.value);
   };
 
   return (
